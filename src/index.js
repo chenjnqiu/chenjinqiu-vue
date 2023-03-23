@@ -1,5 +1,8 @@
 // 用一个全局变量存储被注册的副作用函数
 let activeEffect
+// effect 栈
+const effectStack = [] // 新增
+
 // effect 函数用于注册副作用函数
 function effect(fn) {
     const effectFn = () => {
@@ -7,8 +10,15 @@ function effect(fn) {
         cleanup(effectFn)
         // 当 effectFn 执行时，将其设置为当前激活的副作用函数
         activeEffect = effectFn
+        // 在调用副作用函数之前将当前副作用函数压入栈中
+        effectStack.push(effectFn)
         fn()
+        // 在当前副作用函数执行完毕后，将当前副作用函数弹出栈，并把activeEffect 还原为之前的值
+        effectStack.pop()
+        activeEffect = effectStack[effectStack.length - 1]
     }
+    // 将 options 挂载到 effectFn 上
+    effectFn.options = options // 新增
     // activeEffect.deps 用来存储所有与该副作用函数相关联的依赖集合
     effectFn.deps = []
     // 执行副作用函数
@@ -17,7 +27,7 @@ function effect(fn) {
 
 
 // 原始数据
-const data = { foo: true, bar: true }
+const data = { foo: 1 }
 // 储存副作用桶
 const bucket = new WeakMap()
 // 对原始数据拦截(只有在拦截对象obj上面操作才会走get或者set方法，在原始数据data上面操作不会走get或者set方法)
@@ -38,30 +48,39 @@ const obj = new Proxy(data, {
 })
 
 // 全局变量
-let temp1, temp2
+// let temp1, temp2
 
-// effectFn1 嵌套了 effectFn2
-effect(function effectFn1() {
-    console.log('effectFn1 执行')
+// // effectFn1 嵌套了 effectFn2
+// effect(function effectFn1() {
+//     console.log('effectFn1 执行')
 
-    effect(function effectFn2() {
-        console.log('effectFn2 执行')
-        // 在 effectFn2 中读取 obj.bar 属性
-        temp2 = obj.bar
-    })
-    // 在 effectFn1 中读取 obj.foo 属性
-    temp1 = obj.foo
-})
-
-// effect(() => {
-//     document.body.innerText = obj.text
+//     effect(function effectFn2() {
+//         console.log('effectFn2 执行')
+//         // 在 effectFn2 中读取 obj.bar 属性
+//         temp2 = obj.bar
+//     })
+//     // 在 effectFn1 中读取 obj.foo 属性
+//     temp1 = obj.foo
 // })
+
+effect(() => {
+    console.log(obj.foo)
+},
+    // options
+    {
+        // 调度器 scheduler 是一个函数
+        scheduler(fn) {
+             
+        }
+    }
+)
 
 // 1秒后修改响应式数据
 setTimeout(() => {
     // 副作用函数中并没有读取 notExist 属性的值
     // obj.text = 'hello vue3'
-    obj.bar = false
+    // obj.bar = false
+    // obj.foo = false
 }, 2000)
 
 // 在 get 拦截函数内调用 track 函数追踪变化 
@@ -92,7 +111,13 @@ function trigger(target, key) {
     const depsMap = bucket.get(target)
     if (!depsMap) return
     const effects = depsMap.get(key)
-    const effectsToRun = new Set(effects) // 新增
+    const effectsToRun = new Set() // 新增
+    effects && effects.forEach(effectFn => {
+        // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行
+        if (effectFn !== activeEffect) {
+            effectsToRun.add(effectFn)
+        }
+    })
     effectsToRun.forEach(effectFn => effectFn())
 }
 
