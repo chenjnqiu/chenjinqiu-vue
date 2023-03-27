@@ -1,35 +1,11 @@
-// 用一个全局变量存储被注册的副作用函数
-let activeEffect
-// effect 栈
-const effectStack = [] // 新增
-
-// effect 函数用于注册副作用函数
-function effect(fn) {
-    const effectFn = () => {
-        // 调用 cleanup 函数完成清除工作
-        cleanup(effectFn)
-        // 当 effectFn 执行时，将其设置为当前激活的副作用函数
-        activeEffect = effectFn
-        // 在调用副作用函数之前将当前副作用函数压入栈中
-        effectStack.push(effectFn)
-        fn()
-        // 在当前副作用函数执行完毕后，将当前副作用函数弹出栈，并把activeEffect 还原为之前的值
-        effectStack.pop()
-        activeEffect = effectStack[effectStack.length - 1]
-    }
-    // 将 options 挂载到 effectFn 上
-    effectFn.options = options // 新增
-    // activeEffect.deps 用来存储所有与该副作用函数相关联的依赖集合
-    effectFn.deps = []
-    // 执行副作用函数
-    effectFn()
-}
-
+import flushJob, { jobQueue } from './scheduler' // 调度执行
+import effect, { activeEffect, cleanup } from './effect'
+import computed from './computed'
+import { track, trigger } from './responsive'
+import watch from './watch'
 
 // 原始数据
-const data = { foo: 1 }
-// 储存副作用桶
-const bucket = new WeakMap()
+const data = { foo: 1, bar: 2 }
 // 对原始数据拦截(只有在拦截对象obj上面操作才会走get或者set方法，在原始数据data上面操作不会走get或者set方法)
 const obj = new Proxy(data, {
     // 拦截读取操作
@@ -44,6 +20,8 @@ const obj = new Proxy(data, {
         target[key] = newVal
         // 把副作用函数从桶里取出并执行
         trigger(target, key)
+        // 防止'set' on proxy: trap returned falsish for property报错
+        return true
     }
 })
 
@@ -63,73 +41,73 @@ const obj = new Proxy(data, {
 //     temp1 = obj.foo
 // })
 
-effect(() => {
-    console.log(obj.foo)
-},
-    // options
-    {
-        // 调度器 scheduler 是一个函数
-        scheduler(fn) {
-             
+// 返回需要立即执行得函数
+// const effectFn = effect(
+//     // getter 返回 obj.foo 与 obj.bar 的和
+//     () => obj.foo + obj.bar,
+//     // options
+//     {
+//         // 调度器 scheduler 是一个函数
+//         scheduler(fn) {
+//             // 每次调度时，将副作用函数添加到 jobQueue 队列中
+//             jobQueue.add(fn)
+//             // 调用 flushJob 刷新队列
+//             flushJob()
+//         },
+//         lazy: true, // 不会立即执行当前函数
+//     }
+// )
+
+// 计算属性案列
+// const sumRes = computed(() => obj.foo + obj.bar)
+// // effect嵌套
+// effect(function effectFn() {
+//     console.log(sumRes.value)
+// })
+//  // 修改 obj.foo
+//  obj.foo++
+
+ // watch
+ const fetch = async (params) => {
+    let m = 0
+    setTimeout(() => {
+        m =1
+    }, 1000);
+    return m
+ }
+ watch(
+    // getter 函数
+    () => obj.foo,
+    // 回调函数
+    async (newValue, oldValue, onInvalidate) => {
+        console.log(newValue, oldValue)
+        // 定义一个标志，代表当前副作用函数是否过期，默认为 false，代表没有过期
+        let expired = false
+        // 调用 onInvalidate() 函数注册一个过期回调
+        onInvalidate(() => {
+            // 当过期时，将 expired 设置为 true
+            expired = true
+        })
+        // 发送网络请求
+        const res = await fetch('/path/to/request')
+        // 只有当该副作用函数的执行没有过期时，才会执行后续操作。
+        if (!expired) {
+            finalData = res
         }
+    },
+    {
+        // 回调函数会在 watch 创建时立即执行一次
+        immediate: true,
+        // 回调函数会在 watch 创建时立即执行一次, 当 flush 的值为 'post' 时，代表调度函数需要将副作用函数放到一个微任务队列中
+        // flush: 'pre' // 还可以指定为 'post' | 'sync'
     }
 )
 
-// 1秒后修改响应式数据
-setTimeout(() => {
-    // 副作用函数中并没有读取 notExist 属性的值
-    // obj.text = 'hello vue3'
-    // obj.bar = false
-    // obj.foo = false
-}, 2000)
+  // 修改响应数据的值，会导致回调函数执行
+  obj.foo++
+  setTimeout(() => {
+    // 200ms 后做第二次修改
+    obj.foo++
+  }, 200)
 
-// 在 get 拦截函数内调用 track 函数追踪变化 
-function track(target, key) {
-    // 没有 activeEffect，直接 return
-    if (!activeEffect) return target[key]
-    // 根据 target 从“桶”中取得 depsMap，它也是一个 Map 类型：key -->effects
-    let depsMap = bucket.get(target)
-    // 如果不存在 depsMap，那么新建一个 Map 并与 target 关联
-    if (!depsMap) {
-        bucket.set(target, (depsMap = new Map()))
-    }
-    // 再根据 key 从 depsMap 中取得 deps，它是一个 Set 类型，里面存储着所有与当前 key 相关联的副作用函数：effects
-    let deps = depsMap.get(key)
-    // 如果 deps 不存在，同样新建一个 Set 并与 key 关联
-    if (!deps) {
-        depsMap.set(key, (deps = new Set()))
-    }
-    // 最后将当前激活的副作用函数添加到“桶”里
-    deps.add(activeEffect)
-    // deps 就是一个与当前副作用函数存在联系的依赖集合
-    // 将其添加到 activeEffect.deps 数组中
-    activeEffect.deps.push(deps) // 新增
-}
-
-// 在 set 拦截函数内调用 trigger 函数触发变化
-function trigger(target, key) {
-    const depsMap = bucket.get(target)
-    if (!depsMap) return
-    const effects = depsMap.get(key)
-    const effectsToRun = new Set() // 新增
-    effects && effects.forEach(effectFn => {
-        // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行
-        if (effectFn !== activeEffect) {
-            effectsToRun.add(effectFn)
-        }
-    })
-    effectsToRun.forEach(effectFn => effectFn())
-}
-
-// 副作用执行时先清除之前的副作用
-function cleanup(effectFn) {
-    // 遍历 effectFn.deps 数组
-    for (let i = 0; i < effectFn.deps.length; i++) {
-        // deps 是依赖集合
-        const deps = effectFn.deps[i]
-        // 将 effectFn 从依赖集合中移除
-        deps.delete(effectFn)
-    }
-    // 最后需要重置 effectFn.deps 数组
-    effectFn.deps.length = 0
-}
+ 
