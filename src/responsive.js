@@ -3,6 +3,9 @@ import { activeEffect } from './effect'
 // 储存副作用桶
 const bucket = new WeakMap()
 
+// 设置对象不存在得属性时
+export const ITERATE_KEY = Symbol()
+
 // 在 get 拦截函数内调用 track 函数追踪变化 
 export function track(target, key) {
     // 没有 activeEffect，直接 return
@@ -29,17 +32,30 @@ export function track(target, key) {
 
 
 // 在 set 拦截函数内调用 trigger 函数触发变化
-export function trigger(target, key) {
+export function trigger(target, key, type) {
     const depsMap = bucket.get(target)
     if (!depsMap) return
+    // 取得与 key 相关联的副作用函数
     const effects = depsMap.get(key)
-    const effectsToRun = new Set() // 新增
+    const effectsToRun = new Set()
+    // 将与 key 相关联的副作用函数添加到 effectsToRun
     effects && effects.forEach(effectFn => {
         // 如果 trigger 触发执行的副作用函数与当前正在执行的副作用函数相同，则不触发执行
         if (effectFn !== activeEffect) {
             effectsToRun.add(effectFn)
         }
     })
+    // 当操作类型为 ADD 或 DELETE 时，需要触发与 ITERATE_KEY 相关联的副作用函数重新执行
+    if (type === 'ADD' || type === 'DELETE') {
+        // 取得与 ITERATE_KEY 相关联的副作用函数
+        const iterateEffects = depsMap.get(ITERATE_KEY)
+        // 将与 ITERATE_KEY 相关联的副作用函数也添加到 effectsToRun
+        iterateEffects && iterateEffects.forEach(effectFn => {
+            if (effectFn !== activeEffect) {
+                effectsToRun.add(effectFn)
+            }
+        })
+    }
     effectsToRun.forEach(effectFn => {
         if (effectFn.options.scheduler) {
             effectFn.options.scheduler(effectFn)
