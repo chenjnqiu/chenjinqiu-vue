@@ -13,7 +13,7 @@ export function ref(val) {
     return reactive(wrapper)
 }
 
-// 封装一个toRef函数
+// 封装一个toRef函数,防止展开符导致响应丢失问题
 export function toRef(obj, key) {
     const wrapper = {
         get value() {
@@ -27,7 +27,7 @@ export function toRef(obj, key) {
     return wrapper
 }
 
-// 封装toRefs
+// 封装toRefs,防止展开符导致响应丢失问题
 export function toRefs(obj) {
     const ret = {}
     // 使用 for...in 循环遍历对象

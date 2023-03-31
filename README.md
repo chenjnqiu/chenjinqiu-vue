@@ -1,2 +1,2 @@
 # chenjinqiu-vue
-vue框架练习
+vue设计与实现书籍学习
