@@ -5,6 +5,7 @@ import { track, trigger, ITERATE_KEY } from './observer/responsive'
 import watch from './observer/watch'
 import { reactive, shallowReactive, readonly } from './observer/reactive'
 import { ref, toRefs, toRef, proxyRefs } from './observer/ref'
+import renderer from './instance/renderer'
 
 
 // const obj = {}
@@ -124,10 +125,13 @@ import { ref, toRefs, toRef, proxyRefs } from './observer/ref'
 //  // 修改值可以触发响应
 //  name.value = 'vue3'
 
- const obj = reactive({ foo: 1, bar: 2 })
- effect(() => {
-    console.log(proxyRefs({...toRefs(obj)}))
+//  const obj = reactive({ foo: 1, bar: 2 })
+//  effect(() => {
+//     console.log(proxyRefs({...toRefs(obj)}))
 
- })
- obj.foo = 2
- obj.bar = 3 
+//  })
+//  obj.foo = 2
+//  obj.bar = 3 
+
+
+renderer('<h1>Hello</h1>', document.getElementById('app'))

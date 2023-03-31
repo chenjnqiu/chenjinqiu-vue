@@ -1,5 +1,5 @@
 import { track, trigger, ITERATE_KEY, MAP_KEY_ITERATE_KEY } from './responsive'
-import { isMap, isSet } from './util'
+import { isMap, isSet } from '../util'
 
 const TriggerType = { 
     SET: 'SET',
