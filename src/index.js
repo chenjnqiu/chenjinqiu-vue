@@ -4,6 +4,7 @@ import computed from './computed'
 import { track, trigger, ITERATE_KEY } from './responsive'
 import watch from './watch'
 import { reactive, shallowReactive, readonly } from './reactive'
+import { ref, toRefs, toRef, proxyRefs } from './ref'
 
 
 // const obj = {}
@@ -44,7 +45,33 @@ import { reactive, shallowReactive, readonly } from './reactive'
 // // 尝试修改数据，会得到警告
 // obj.foo = 2
 
+// // set
+// const p = reactive(new Set([1, 2, 3]))
+// // 第一个副作用函数
+// effect(() => {
+//     console.log(p.size)
+// })
+// p.add(4)
+// p.delete(1)
 
+// map
+// const p = reactive(new Map([['key', 1]]))
+// effect(() => {
+//     console.log(p.get('key'))
+// })
+// p.set('key', 2) // 触发响应
+
+// 迭代器
+// const p = reactive(new Map([
+//     ['key1', 'value1'],
+//     ['key2', 'value2']
+// ]))
+// effect(() => {
+//     for (const [key, value] of p) {
+//         console.log(key, value)
+//     }
+// })
+// p.set('key3', 'value3')
 
 // 返回需要立即执行得函数
 // const effectFn = effect(
@@ -87,3 +114,20 @@ import { reactive, shallowReactive, readonly } from './reactive'
 //         // flush: 'pre' // 还可以指定为 'post' | 'sync'
 //     }
 // )
+
+
+// 原始值
+//  const name = ref('vue')
+//  effect(() => {
+//     console.log(name.value)
+//  })
+//  // 修改值可以触发响应
+//  name.value = 'vue3'
+
+ const obj = reactive({ foo: 1, bar: 2 })
+ effect(() => {
+    console.log(proxyRefs({...toRefs(obj)}))
+
+ })
+ obj.foo = 2
+ obj.bar = 3 
