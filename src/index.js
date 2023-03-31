@@ -1,10 +1,10 @@
-import flushJob, { jobQueue } from './scheduler' // 调度执行
-import effect, { activeEffect, cleanup } from './effect'
-import computed from './computed'
-import { track, trigger, ITERATE_KEY } from './responsive'
-import watch from './watch'
-import { reactive, shallowReactive, readonly } from './reactive'
-import { ref, toRefs, toRef, proxyRefs } from './ref'
+import flushJob, { jobQueue } from './observer/scheduler' // 调度执行
+import effect, { activeEffect, cleanup } from './observer/effect'
+import computed from './observer/computed'
+import { track, trigger, ITERATE_KEY } from './observer/responsive'
+import watch from './observer/watch'
+import { reactive, shallowReactive, readonly } from './observer/reactive'
+import { ref, toRefs, toRef, proxyRefs } from './observer/ref'
 
 
 // const obj = {}
