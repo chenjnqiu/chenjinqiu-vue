@@ -1,5 +1,14 @@
-function renderer(domString, container) {
-    container.innerHTML = domString
+function createRenderer() {
+    function render(vnode, container) {
+        container.innerHTML = vnode
+    }
+    function hydrate(vnode, container) {
+
+    }
+    return {
+        render,
+        hydrate,
+    }
 }
 
-export default renderer
+export default createRenderer

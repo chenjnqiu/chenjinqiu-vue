@@ -5,8 +5,9 @@ import { track, trigger, ITERATE_KEY } from './observer/responsive'
 import watch from './observer/watch'
 import { reactive, shallowReactive, readonly } from './observer/reactive'
 import { ref, toRefs, toRef, proxyRefs } from './observer/ref'
-import renderer from './instance/renderer'
+import createRenderer from './instance/renderer'
 
+const renderer = createRenderer()
 
 // const obj = {}
 // const proto = { bar: 1 }
@@ -134,4 +135,8 @@ import renderer from './instance/renderer'
 //  obj.bar = 3 
 
 
-renderer('<h1>Hello</h1>', document.getElementById('app'))
+const count = ref(1)
+effect(() => {
+    renderer.render(`<h1>${count.value}</h1>`, document.getElementById('app'))
+})
+count.value++
