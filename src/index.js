@@ -6,8 +6,22 @@ import watch from './observer/watch'
 import { reactive, shallowReactive, readonly } from './observer/reactive'
 import { ref, toRefs, toRef, proxyRefs } from './observer/ref'
 import createRenderer from './instance/renderer'
+import { 
+    createElement, 
+    setElementText, 
+    insert, 
+    patchProps, 
+    createText, 
+    setText, 
+    Text, 
+    Comment,
+    createComment,
+    Fragment,
+} from './vdom/create-element'
 
-const renderer = createRenderer()
+const renderer = createRenderer({
+    createElement, setElementText, insert, patchProps, createText, setText, createComment
+})
 
 // const obj = {}
 // const proto = { bar: 1 }
@@ -134,13 +148,74 @@ const renderer = createRenderer()
 //  obj.foo = 2
 //  obj.bar = 3 
 
+// const vnode = {
+//     type: 'h1',
+//     // 使用 props 描述一个元素的属性
+//     props: {
+//         id: 'foo',
+//         // 使用 onXxx 描述事件
+//        onClick: [
+//             // 第一个事件处理函数
+//             () => {
+//                 alert('clicked 1')
+//             },
+//             // 第二个事件处理函数
+//             () => {
+//                 alert('clicked 2')
+//             }
+//         ],
+//         onContextmenu: () => {
+//             alert('contextmenu')
+//         }
+//     },
+//     children: [{
+//         type: 'p',
+//         children: 'hello' 
+//     }, {
+//         // 描述文本节点
+//         type: Text,
+//         children: '我是文本内容'
+//     }, {
+//         // 描述注释节点
+//         type: Comment,
+//         children: '我是注释内容'
+//     }, {
+//         type: 'ul',
+//         children: [{
+//             type: Fragment,
+//             children: [
+//                 { type: 'li', children: 'text 1', key: 1 },
+//                 { type: 'li', children: 'text 2', key: 2 },
+//                 { type: 'li', children: 'text 3', key: 3 }
+//             ]
+//         }]
+//     }]
+// }
+// effect(() => {
+//     renderer.render(vnode, document.querySelector('#app'))
+// }) 
 
-const vnode = {
-    type: 'h1',
-    children: 'hello',
+const oldVNode = {
+    type: 'div',
+    children: [
+        { type: 'p', children: '1', key: 1 },
+        { type: 'p', children: '2', key: 2 },
+        { type: 'p', children: 'hello', key: 3 }
+    ]
 }
-const count = ref(1)
-effect(() => {
-    renderer.render(vnode, document.getElementById('app'))
-}) 
-count.value++
+
+const newVNode = {
+    type: 'div',
+    children: [
+        { type: 'p', children: 'world', key: 3 },
+        { type: 'p', children: '1', key: 1 },
+        { type: 'p', children: '2', key: 2 },
+    ]
+}
+
+ // 首次挂载
+ renderer.render(oldVNode, document.querySelector('#app'))
+ setTimeout(() => {
+    // 1 秒钟后更新
+    renderer.render(newVNode, document.querySelector('#app'))
+ }, 1000)
