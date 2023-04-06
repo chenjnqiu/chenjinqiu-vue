@@ -3,6 +3,7 @@ import {
     Comment,
     Fragment,
 } from '../vdom/create-element'
+import { lis } from '../util'
 
 function createRenderer(options) {
     // 通过 options 得到操作 DOM 的 API
@@ -305,6 +306,45 @@ function createRenderer(options) {
                     // 如果更新过的节点数量大于需要更新的节点数量，则卸载多余的节点
                     unmount(oldVNode)
                 }
+            }
+            if (moved) {
+                // 如果 moved 为真，则需要进行 DOM 移动操作
+                // 计算最长递增子序列
+                const seq = lis(source)
+                // s 指向最长递增子序列的最后一个元素
+                let s = seq.length - 1
+                // i 指向新的一组子节点的最后一个元素
+                let i = count - 1
+                // for 循环使得 i 递减
+                for (i; i >= 0; i--) {
+                    if (source[i] === -1) {
+                        // 说明索引为 i 该节点在新 children 中的真实位置索引
+                        const pos = i + newStart
+                        const newVNode = newChildren[pos]
+                        // 该节点的下一个节点的位置索引
+                        const nextPos = pos + 1
+                        // 锚点
+                        const anchor = nextPos < newChildren.length ? newChildren[nextPos].el : null
+                        // 挂载
+                        patch(null, newVNode, container, anchor)
+
+                    } else if (i !== seq[s]) {
+                        // 如果节点的索引 i 不等于 seq[s] 的值，说明该节点需要移动
+                        // 该节点在新的一组子节点中的真实位置索引
+                        const pos = i + newStart
+                        const newVNode = newChildren[pos]
+                        // 该节点的下一个节点的位置索引
+                        const nextPos = pos + 1
+                        // 锚点
+                        const anchor = nextPos < newChildren.length ? newChildren[nextPos].el : null
+                        // 移动
+                        insert(newVNode.el, container, anchor)
+                    } else {
+                        // 当 i === seq[s] 时，说明该位置的节点不需要移动,只需要让 s 指向下一个位置
+                        s--
+                    }
+                }
+
             }
         }
     }
