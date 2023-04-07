@@ -195,29 +195,90 @@ const renderer = createRenderer({
 //     renderer.render(vnode, document.querySelector('#app'))
 // }) 
 
-const oldVNode = {
-    type: 'div',
-    children: [
-        { type: 'p', children: '1', key: 1 },
-        { type: 'p', children: '2', key: 2 },
-        { type: 'p', children: 'hello', key: 3 },
-        // { type: 'p', children: '4', key: 4 },
-    ]
-}
+// const oldVNode = { 
+//     type: 'div',
+//     children: [
+//         { type: 'p', children: '1', key: 1 },
+//         { type: 'p', children: '2', key: 2 },
+//         { type: 'p', children: 'hello', key: 3 },
+//         // { type: 'p', children: '4', key: 4 },
+//     ]
+// }
 
-const newVNode = {
-    type: 'div',
-    children: [
-        { type: 'p', children: '4', key: 4 },
-        { type: 'p', children: '2', key: 2 },
-        { type: 'p', children: '1', key: 1 },
-        { type: 'p', children: 'world', key: 3 },
-    ]
-}
+// const newVNode = {
+//     type: 'div',
+//     children: [
+//         { type: 'p', children: '4', key: 4 },
+//         { type: 'p', children: '2', key: 2 },
+//         { type: 'p', children: '1', key: 1 },
+//         { type: 'p', children: 'world', key: 3 },
+//     ]
+// }
 
- // 首次挂载
- renderer.render(oldVNode, document.querySelector('#app'))
- setTimeout(() => {
-    // 1 秒钟后更新
-    renderer.render(newVNode, document.querySelector('#app'))
- }, 1000)
+//  // 首次挂载
+//  renderer.render(oldVNode, document.querySelector('#app'))
+//  setTimeout(() => {
+//     // 1 秒钟后更新
+//     renderer.render(newVNode, document.querySelector('#app'))
+//  }, 1000)
+
+
+
+ // MyComponent 是一个组件，它的值是一个选项对象
+ const MyComponent = {
+    name: 'MyComponent',
+    // 组件接收名为 title 的 props，并且该 props 的类型为 String
+    props: {
+        title: String,
+    },
+    data() {
+        return { foo: 'hello world' }
+    },
+    setup() {
+
+    },
+    // 组件的渲染函数，其返回值必须为虚拟 DOM
+    render() {
+        // 返回虚拟 DOM
+        return [
+            {
+                type: 'header',
+                children: [this.$slots.header()]
+            },
+            {
+                type: 'body',
+                children: [this.$slots.body()]
+            },
+            {
+                type: 'footer',
+                children: [this.$slots.footer()]
+            }
+        ]
+    }
+ }
+// 该 vnode 用来描述组件，type 属性存储组件的选项对象
+const vnode = {
+    // type: MyComponent,
+    props: {
+        title: 'A big Title',
+        // other: this.val
+    },
+    render() {
+        return {
+            type: MyComponent,
+            // 组件的 children 会被编译成一个对象
+            children: {
+                header() {
+                    return { type: 'h1', children: '我是标题' }
+                },
+                body() {
+                    return { type: 'section', children: '我是内容' }
+                },
+                footer() {
+                    return { type: 'p', children: '我是注脚' }
+                }
+            }
+        }
+    }
+}
+renderer.render(vnode, document.querySelector('#app'))
