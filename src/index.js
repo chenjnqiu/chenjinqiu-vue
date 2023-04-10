@@ -226,19 +226,13 @@ const renderer = createRenderer({
  
 // 该 vnode 用来描述组件，type 属性存储组件的选项对象
 const vnode = {
-    type: 'div',
+    type: 'Teleport',
     props: {
         title: 'A big Title',
     },
-    // render() {
-    //     return {
-    //         type: Teleport,
-    //         // 以普通 children 的形式代表被 Teleport 的内容
-    //         children: [
-    //             { type: 'h1', children: 'Title' },
-    //             { type: 'p', children: 'content' }
-    //         ]
-    //     }
-    // }
+    children: [
+        { type: 'h1', children: 'Title' },
+        { type: 'p', children: 'content' }
+    ]
 }
 renderer.render(vnode, document.querySelector('#app'))

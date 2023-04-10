@@ -2,7 +2,8 @@ import babel from 'rollup-plugin-babel';
 import { uglify } from 'rollup-plugin-uglify';
 import serve from 'rollup-plugin-serve';
 import livereload from 'rollup-plugin-livereload';
-import html from 'rollup-plugin-html-template'
+// import html from 'rollup-plugin-html-template'
+import html from 'rollup-plugin-generate-html-template'
 
 
 export default {
