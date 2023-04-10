@@ -1,6 +1,6 @@
 import { activeEffect } from './effect'
 import { shouldTrack } from './reactive'
-import { isMap, isSet } from '../util'
+import { isMap, isSet } from '../util/index'
 
 // 储存副作用桶
 const bucket = new WeakMap()

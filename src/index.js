@@ -18,6 +18,7 @@ import {
     createComment,
     Fragment,
 } from './vdom/create-element'
+import { Teleport } from './core/components/index'
 
 const renderer = createRenderer({
     createElement, setElementText, insert, patchProps, createText, setText, createComment
@@ -222,63 +223,22 @@ const renderer = createRenderer({
 //     renderer.render(newVNode, document.querySelector('#app'))
 //  }, 1000)
 
-
-
- // MyComponent 是一个组件，它的值是一个选项对象
- const MyComponent = {
-    name: 'MyComponent',
-    // 组件接收名为 title 的 props，并且该 props 的类型为 String
-    props: {
-        title: String,
-    },
-    data() {
-        return { foo: 'hello world' }
-    },
-    setup() {
-
-    },
-    // 组件的渲染函数，其返回值必须为虚拟 DOM
-    render() {
-        // 返回虚拟 DOM
-        return [
-            {
-                type: 'header',
-                children: [this.$slots.header()]
-            },
-            {
-                type: 'body',
-                children: [this.$slots.body()]
-            },
-            {
-                type: 'footer',
-                children: [this.$slots.footer()]
-            }
-        ]
-    }
- }
+ 
 // 该 vnode 用来描述组件，type 属性存储组件的选项对象
 const vnode = {
-    // type: MyComponent,
+    type: 'div',
     props: {
         title: 'A big Title',
-        // other: this.val
     },
-    render() {
-        return {
-            type: MyComponent,
-            // 组件的 children 会被编译成一个对象
-            children: {
-                header() {
-                    return { type: 'h1', children: '我是标题' }
-                },
-                body() {
-                    return { type: 'section', children: '我是内容' }
-                },
-                footer() {
-                    return { type: 'p', children: '我是注脚' }
-                }
-            }
-        }
-    }
+    // render() {
+    //     return {
+    //         type: Teleport,
+    //         // 以普通 children 的形式代表被 Teleport 的内容
+    //         children: [
+    //             { type: 'h1', children: 'Title' },
+    //             { type: 'p', children: 'content' }
+    //         ]
+    //     }
+    // }
 }
 renderer.render(vnode, document.querySelector('#app'))

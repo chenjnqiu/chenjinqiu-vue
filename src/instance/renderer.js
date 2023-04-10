@@ -4,12 +4,12 @@ import {
     Fragment,
 } from '../vdom/create-element'
 import { reactive, shallowReactive } from '../observer/reactive'
-import { lis } from '../util'
+import { lis } from '../util/index'
 import queueJob from './scheduler'
 import effect from '../observer/effect'
 
 // 全局变量，存储当前正在被初始化的组件实例
-let currentInstance = null
+export let currentInstance = null
 // 该方法接收组件实例作为参数，并将该实例设置为 currentInstance
 function setCurrentInstance(instance) {
     currentInstance = instance
@@ -67,6 +67,16 @@ function createRenderer(options) {
         if (vnode.type === Fragment) {
             vnode.children.forEach(c => unmount(c))
             return
+        } else if (typeof vnode.type === 'object') {
+            // vnode.shouldKeepAlive 是一个布尔值，用来标识该组件是否应该被 KeepAlive
+            if (vnode.shouldKeepAlive) {
+                // 对于需要被 KeepAlive 的组件，我们不应该真的卸载它，而应调用该组件的父组件，即 KeepAlive 组件的 _deActivate 函数使其失活
+                vnode.keepAliveInstance._deActivate(vnode)
+            } else {
+                // 对于组件的卸载，本质上是要卸载组件所渲染的内容，即 subTree
+                unmount(vnode.component.subTree)
+            }
+            return
         }
         // 获取 el 的父元素
         const parent = vnode.el.parentNode
@@ -102,8 +112,17 @@ function createRenderer(options) {
 
     // 挂载组件
     function mountComponent(vnode, container, anchor) {
+        // 检查是否是函数式组件
+        const isFunctional = typeof vnode.type === 'function'
          // 通过 vnode 获取组件的选项对象，即 vnode.type
-         const componentOptions = vnode.type
+         let componentOptions = vnode.type
+         if (isFunctional) {
+            // 如果是函数式组件，则将 vnode.type 作为渲染函数，将vnode.type.props 作为 props 选项定义即可
+            componentOptions = {
+                render: vnode.type,
+                props: vnode.type.props
+            }
+         }
          // 获取组件的渲染函数 render
          const { render, data, setup, props: propsOption, beforeCreate, created, beforeMount, mounted, beforeUpdate, updated } = componentOptions
          // 在这里调用 beforeCreate 钩子
@@ -126,7 +145,22 @@ function createRenderer(options) {
             subTree: null,
             slots,
             // 在组件实例中添加 mounted 数组，用来存储通过 onMounted 函数注册的生命周期钩子函数
-            mounted: []
+            mounted: [],
+            // 只有 KeepAlive 组件的实例下会有 keepAliveCtx 属性
+            keepAliveCtx: null
+         }
+         // 检查当前要挂载的组件是否是 KeepAlive 组件
+         const isKeepAlive = vnode.type.__isKeepAlive
+         if (isKeepAlive) {
+            // 在 KeepAlive 组件实例上添加 keepAliveCtx 对象
+            instance.keepAliveCtx = {
+                // move 函数用来移动一段 vnode
+                move(vnode, container, anchor) {
+                    // 本质上是将组件渲染的内容移动到指定容器中，即隐藏容器中
+                    insert(vnode.component.subTree.el, container, anchor)
+                },
+                createElement
+            }
          }
          // 定义 emit 函数，它接收两个参数, event: 事件名称, payload: 传递给事件处理函数的参数
          function emit(event, ...payload) {
@@ -668,9 +702,26 @@ function createRenderer(options) {
                 // 如果旧 vnode 存在，则只需要更新 Fragment 的 children 即可
                 patchChildren(n1, n2, container)
             }
-        } else if(typeof type === 'object') {
+        } else if (typeof type === 'object' && type.__isTeleport) {
+            // 组件选项中如果存在 __isTeleport 标识，则它是 Teleport 组件，
+            // 调用 Teleport 组件选项中的 process 函数将控制权交接出去
+            // 传递给 process 函数的第五个参数是渲染器的一些内部方法
+            type.process(n1, n2, container, anchor, {
+                patch,
+                patchChildren,
+                unmount,
+                move(vnode, container, anchor) {
+                    insert(vnode.component ? vnode.component.subTree.el : vnode.el, container, anchor)
+                }
+            })
+
+        } else if (typeof type === 'object' || typeof type === 'function') {
             // 如果 n2.type 的值的类型是对象，则它描述的是组件
             if (!n1) {
+                // 如果该组件已经被 KeepAlive，则不会重新挂载它，而是会调用_activate 来激活它
+                if (n2.keptAlive) {
+                    n2.keepAliveInstance._activate(n2, container, anchor)
+                }
                 // 挂载组件
                 mountComponent(n2, container, anchor)
             } else {
