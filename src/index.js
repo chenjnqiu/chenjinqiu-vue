@@ -19,6 +19,7 @@ import {
     Fragment,
 } from './vdom/create-element'
 import { Teleport } from './core/components/index'
+import compile, { tokenize, dump, traverseNode, transform } from './compiler/parse'
 
 const renderer = createRenderer({
     createElement, setElementText, insert, patchProps, createText, setText, createComment
@@ -226,13 +227,23 @@ const renderer = createRenderer({
  
 // 该 vnode 用来描述组件，type 属性存储组件的选项对象
 const vnode = {
-    type: 'Teleport',
+    type: 'div',
     props: {
         title: 'A big Title',
     },
-    children: [
-        { type: 'h1', children: 'Title' },
-        { type: 'p', children: 'content' }
-    ]
+    children: [{
+        type: Teleport,
+            props: {
+                to: 'body',
+            },
+            children: [
+                { type: 'h1', children: 'Title' },
+                { type: 'p', children: 'content' }
+            ]
+    }]
 }
 renderer.render(vnode, document.querySelector('#app'))
+
+const tokens = tokenize(`<div><p>Vue</p><p>Template</p></div>`)
+const parseVal = compile(`<div><p>Vue</p><p>Template</p></div>`)
+// console.log(tokens)
